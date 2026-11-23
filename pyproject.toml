@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "carga-cognitiva"
+version = "0.1.0"
+description = "Estimativa de carga cognitiva acumulada em sessões com agentes, com alertas por faixa."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.scripts]
+carga = "carga_cognitiva.cli:main"
+
+[tool.setuptools]
+packages = ["carga_cognitiva"]
