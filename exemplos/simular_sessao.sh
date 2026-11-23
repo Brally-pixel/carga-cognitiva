@@ -1,15 +1,21 @@
 #!/usr/bin/env bash
-# Reproduz o exemplo da fórmula numa pasta temporária:
-# 2h30 de sessão, 12 decisões, 4 trocas de thread, 3 retrabalhos, 800 linhas
-# -> (12 + 8 + 9 + 4) x 1,5 = 49,5 (amarelo)
+# Simula duas sessões numa pasta temporária.
+#
+# Sessão 1 reproduz o exemplo da fórmula: 2h30, 12 decisões, 4 trocas com
+# pendência, 3 retrabalhos, 800 linhas -> (12 + 8 + 9 + 4) x 1,5 = 49,5 (amarelo).
+# Depois de 45 min de pausa, a sessão 2 começa com o residual da primeira,
+# recebe uma resposta grande demais e três aprovações rápidas seguidas.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 export CARGA_DIR="$(mktemp -d)"
 carga() { python3 -m carga_cognitiva "$@"; }
 
-ts() { printf '2026-11-23T%02d:%02d:00+00:00' $((9 + $1 / 60)) $(($1 % 60)); }
+# ts MINUTOS [SEGUNDOS] -> instante ISO a partir de 09:00 UTC
+ts() { printf '2026-11-23T%02d:%02d:%02d+00:00' $((9 + $1 / 60)) $(($1 % 60)) "${2:-0}"; }
+hook() { carga hook --agora "$2" <<< "$1"; }
 
+echo "== Sessão 1 =="
 minuto=0
 decisoes=12
 linhas=800
@@ -19,21 +25,35 @@ for thread in A B A C A; do
     if [ "$decisoes" -gt 0 ]; then args+=(--decisao); decisoes=$((decisoes - 1)); fi
     if [ "$linhas" -gt 0 ]; then args+=(--linhas 40); linhas=$((linhas - 40)); fi
     carga registrar "${args[@]}" > /dev/null
-    alerta="$(carga alerta --agora "$(ts $minuto)")"
-    [ -n "$alerta" ] && echo "[$(ts $minuto)] $alerta"
+    aviso="$(carga alerta --agora "$(ts $minuto)")"
+    [ -n "$aviso" ] && echo "[$(ts $minuto)] $aviso"
     minuto=$((minuto + 7))
   done
 done
 
-carga registrar --thread A --retrabalho --agora "$(ts 134)" > /dev/null
-carga registrar --thread A --retrabalho --agora "$(ts 135)" > /dev/null
-carga registrar --thread A --retrabalho --agora "$(ts 136)" > /dev/null
+for m in 134 135 136; do
+  carga registrar --thread A --retrabalho --agora "$(ts $m)" > /dev/null
+done
 
 echo
 carga pontuar --agora "$(ts 150)"
+carga feedback 3 --demanda 4 --agora "$(ts 151)"
+
 echo
-alerta="$(carga alerta --agora "$(ts 150)")"
-echo "${alerta:-sem alerta novo (cooldown)}"
+echo "== 45 min de pausa =="
+carga pontuar --agora "$(ts 181)"
+
 echo
-carga feedback 3 --agora "$(ts 151)"
-carga resumo --agora "$(ts 152)"
+echo "== Sessão 2 =="
+hook '{"thread": "D", "linhas": 450, "decisao": true}' "$(ts 181)"
+hook '{"thread": "D", "aprovacao": true}' "$(ts 181 20)"
+hook '{"thread": "D", "linhas": 120, "decisao": true}' "$(ts 183)"
+hook '{"thread": "D", "aprovacao": true}' "$(ts 183 15)"
+hook '{"thread": "D", "linhas": 90, "decisao": true, "concluida": true}' "$(ts 185)"
+hook '{"thread": "D", "aprovacao": true}' "$(ts 185 10)"
+hook '{"thread": "E", "linhas": 30}' "$(ts 187)"
+
+echo
+carga pontuar --agora "$(ts 188)"
+echo
+carga resumo --agora "$(ts 189)"

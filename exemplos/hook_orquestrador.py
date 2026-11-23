@@ -25,21 +25,30 @@ def ao_enviar_resposta(
     texto: str,
     gate_pendente: Optional[bool] = None,
     linhas_para_revisar: Optional[int] = None,
+    thread_concluida: bool = False,
 ) -> Optional[str]:
-    """Registra a resposta e devolve o texto do alerta (ou None).
+    """Registra a resposta e devolve os avisos (ou None).
 
     - thread: nome estável da frente de trabalho.
     - texto: resposta enviada ao humano.
     - gate_pendente: True/False se o orquestrador sabe; None usa a heurística.
     - linhas_para_revisar: diff/spec anexos; None conta as linhas do texto.
+    - thread_concluida: a thread terminou o que fazia e não deixa pendência.
     """
     decisao = bool(PEDE_DECISAO.search(texto)) if gate_pendente is None else gate_pendente
-    return apos_resposta(thread, texto, decisao=decisao, linhas=linhas_para_revisar)
+    return apos_resposta(
+        thread, texto, decisao=decisao, linhas=linhas_para_revisar, concluida=thread_concluida
+    )
+
+
+def ao_aprovar_gate(thread: str) -> Optional[str]:
+    """Chame no momento em que o humano aprova o gate pendente da thread."""
+    return apos_resposta(thread, aprovacao=True)
 
 
 def ao_receber_correcao(thread: str) -> Optional[str]:
     """Chame quando o humano rejeitar ou corrigir uma entrega da thread."""
-    return apos_resposta(thread, retrabalho=True, linhas=0)
+    return apos_resposta(thread, retrabalho=True)
 
 
 if __name__ == "__main__":

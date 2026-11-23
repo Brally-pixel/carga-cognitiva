@@ -8,14 +8,17 @@ from .nucleo import (
     calibracao,
     carregar_config,
     pontuar,
+    pontuar_cadeia,
     pontuar_sessao,
     registrar,
     registrar_feedback,
     resumo,
     verificar_alerta,
+    verificar_aprovacao_automatica,
+    verificar_avisos,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "CONFIG_PADRAO",
@@ -25,9 +28,12 @@ __all__ = [
     "calibracao",
     "carregar_config",
     "pontuar",
+    "pontuar_cadeia",
     "pontuar_sessao",
     "registrar",
     "registrar_feedback",
     "resumo",
     "verificar_alerta",
+    "verificar_aprovacao_automatica",
+    "verificar_avisos",
 ]
